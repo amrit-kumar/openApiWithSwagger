@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '2.7.6'
 	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+	id "org.openapi.generator" version "6.2.1"
 }
 
 group = 'com.example'
@@ -18,6 +19,65 @@ repositories {
 	mavenCentral()
 }
 
+def petstoreApiYml = "$rootDir/src/main/resources/petstore-api.yml".toString()
+
+/* java client configuration */
+task buildPetStoreJavaClient(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+	generatorName = "java"
+	inputSpec = petstoreApiYml
+	outputDir = "$buildDir/java-client".toString()
+
+	groupId = "$project.group"
+	id = "$project.name-java-client"
+	version = "$project.version"
+	apiPackage = "com.petstore.api"
+	invokerPackage = "com.petstore.api.invoker"
+	modelPackage = "com.petstore.api.model"
+	enablePostProcessFile = true
+	skipOverwrite = false
+	configOptions = [
+			java11               : "true",
+			dateLibrary         : "java11",
+			serializationLibrary: "jackson",
+			library             : "resttemplate",
+			useBeanValidation   : "true",
+			enableBuilderSupport: "true"
+	]
+
+}
+
+task generateCode(type: Copy, dependsOn: ['buildPetStoreJavaClient']) {
+
+	def srcPath = "$buildDir/java-client"
+	def targetPath = "$rootDir/docs"
+
+	// copy docs
+	from(srcPath + "/docs")
+	into(targetPath)
+	include('*.md')
+}
+// code will be generated during compilation
+compileJava.dependsOn(generateCode)
+
+// attach the generated folder as source for this project
+sourceSets {
+	main {
+		java {
+			srcDir "$buildDir/generated/src/main/java"
+		}
+	}
+}
+// these dependencies are required for the generated code in order to build
+ext {
+	swagger_annotations_version = "1.5.22"
+	jackson_version = "2.9.9"
+	jackson_databind_version = "2.9.9"
+	spring_web_version = "4.3.9.RELEASE"
+	jodatime_version = "2.9.9"
+	junit_version = "4.12"
+	validation_version = "2.0.1.Final"
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -25,8 +85,24 @@ dependencies {
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	compileOnly group: 'io.springfox', name: 'springfox-swagger2', version: '2.7.0'
+	compileOnly group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.7.0'
+
+	implementation "org.springframework:spring-web"
+	implementation "com.fasterxml.jackson.core:jackson-core"
+	implementation "com.fasterxml.jackson.core:jackson-annotations"
+	implementation "com.fasterxml.jackson.core:jackson-databind"
+	implementation "org.openapitools:jackson-databind-nullable:0.2.4"
+	implementation "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider"
+	implementation "com.google.code.findbugs:jsr305:3.0.2"
+	implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+	testImplementation "junit:junit"
+	implementation group: 'javax.annotation', name: 'javax.annotation-api'
+	implementation "javax.validation:validation-api"
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+apply plugin: 'org.openapi.generator'

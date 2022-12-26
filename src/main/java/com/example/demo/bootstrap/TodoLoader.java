@@ -5,7 +5,12 @@ import com.example.demo.models.TodoStatus;
 
 import com.example.demo.repositories.TodoRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
+
+
+import java.util.Collections;
 
 @Component
 public class TodoLoader implements CommandLineRunner {
